@@ -1,7 +1,6 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { ActivitiesVault, Activity } from 'src/ActivitiesVault';
 import { ActivitiesObserverInterface } from 'src/ActivitiesObserver';
-import { on } from 'events';
 
 // Remember to rename these classes and interfaces! TODO
 

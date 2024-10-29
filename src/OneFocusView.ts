@@ -4,15 +4,12 @@ import { Activity } from 'src/ActivitiesVault';
 import { ActivitiesObserverInterface } from 'src/ActivitiesObserver';
 
 import {
-  Editor,
+  //Editor,
   ItemView,
-  MarkdownView,
+  //MarkdownView,
   Notice,
   WorkspaceLeaf,
 } from 'obsidian';
-
-import  CurrentActivityId  from '../main';
-
 
 class ActivitesObserver implements ActivitiesObserverInterface {
   activities: Activity[] = [];
@@ -68,6 +65,5 @@ export default class OneFocusView extends ItemView
         button.addEventListener('click', () => {
           new Notice(`You clicked on ${activity.displayName}`);
         });
-    }
-
-}
+    });}
+  }
