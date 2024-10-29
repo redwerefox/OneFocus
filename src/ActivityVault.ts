@@ -1,3 +1,4 @@
+import { OneFocusSettings } from './OneFocusSettingsTab';
 
 export interface ActivitiesObserverInterface {
     update(activities: Activity[]): void;
@@ -46,8 +47,9 @@ export class ActivitiesVault implements OneFocusObservable {
     observers: ActivitiesObserverInterface[] = [];
     defaultActivity: Activity;
 
-    constructor() {
-        this.defaultActivity = new Activity('No Activities');
+    constructor(settings: OneFocusSettings) {
+        this.defaultActivity = settings.getActivities()[0];
+        this.activities = settings.getActivities();
     }
 
     subscribe(observer: ActivitiesObserverInterface): void {

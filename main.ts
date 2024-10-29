@@ -1,5 +1,5 @@
 import {  Editor, MarkdownView, Plugin } from 'obsidian';
-import { ActivitiesVault, Activity } from 'src/ActivityVault';
+import { Activity, ActivitiesVault } from 'src/ActivityVault';
 import { OneFocusSettingsTab, OneFocusSettings, DEFAULT_ONEFOCUS_SETTINGS } from 'src/OneFocusSettingsTab';
 import { ActivitiesModal } from 'src/ActivitiesModal';
 // Remember to rename these classes and interfaces! TODO
@@ -21,33 +21,25 @@ export class CurrentActivityId {
 	}
 }
 
-export class OneFocus extends Plugin {
+export default class OneFocus extends Plugin {
 	settings: OneFocusSettings;
 
-	activitiesVault: ActivitiesVault;
-
-	activityModal: ActivitiesModal;
-
 	currentActivity: Activity
-
-	index: number;
+	activitiesVault: ActivitiesVault
+	index : 0;
 
 	
 	async onload() {
 		await this.loadSettings();
-
-		this.index = 1;
-		this.activitiesVault = new ActivitiesVault();
-		this.currentActivity = this.activitiesVault.defaultActivity;
+		this.activitiesVault = new ActivitiesVault(this.settings);
+		this.currentActivity = this.settings.getActivities()[0];
 
 		this.addCommand({
 			id: 'add-activity',
 			name: 'OneFocus: Add Activity',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
 				const activity = new Activity('New Activity'+ this.index);
-				this.index += 1;
-				this.activitiesVault.addActivity(activity);
-				this.activitiesVault.notifyObservers();
+				this.settings.addActivity(activity);
 			}
 
 		});
@@ -57,9 +49,7 @@ export class OneFocus extends Plugin {
 			name: 'OneFocus: Remove Activity',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
 				const activity = new Activity('New Activity' + (this.index - 1));
-				this.index -= 1;
-				this.activitiesVault.removeActivity(activity);
-				this.activitiesVault.notifyObservers();
+				this.settings.removeActivity(activity);
 			}
 		});
 
@@ -67,8 +57,7 @@ export class OneFocus extends Plugin {
 			id: 'see-activities',
 			name: 'OneFocus: See Activities',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				new ActivitiesModal(this.app, this.activitiesVault.activities).open();
-				//this.currentActivity = activity;
+				new ActivitiesModal(this.app, this.settings.getActivities()).open();
 			}
 		});
 
@@ -87,7 +76,8 @@ export class OneFocus extends Plugin {
 		//ribbonIconEl.addClass('my-plugin-ribbon-class');
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new OneFocusSettingsTab(this.app, this));
+		
+		this.addSettingTab(new OneFocusSettingsTab(this.app, this, this.activitiesVault));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.

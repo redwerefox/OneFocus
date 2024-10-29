@@ -1,22 +1,52 @@
 import { App,  PluginSettingTab, Setting } from 'obsidian';
-import  {OneFocus} from '../main';
-import {Activity} from './ActivityVault';
+import OneFocus from '../main';
+import {Activity, ActivitiesVault, ActivitesObserver} from './ActivityVault';
 
 
 export interface OneFocusSettings {
-    activities: Activity[];
+    getActivities(): Activity[];
+    addActivity(activity: Activity): void;
+    removeActivity(activity: Activity): void;
+    modifyActivity(activity: Activity): void;
 }
 
 export const DEFAULT_ONEFOCUS_SETTINGS: OneFocusSettings = {
-	activities : [new Activity('No Activities')]
+    getActivities(): Activity[] {
+        return [new Activity('No Activities')];
+    },
+    addActivity(activity: Activity): void {
+        return;
+    },
+    removeActivity(activity: Activity): void {
+        return;
+    },  
+    modifyActivity(activity: Activity): void {
+        return;
+    }  
 }
 
 export class OneFocusSettingsTab extends PluginSettingTab {
     plugin: OneFocus;
-    
-    constructor(app: App, plugin: OneFocus) {
+    activitiesVault: ActivitiesVault;
+    activitiesObserver: ActivitesObserver;
+
+    constructor(app: App, plugin: OneFocus, activitiesVault: ActivitiesVault) {
         super(app, plugin);
         this.plugin = plugin;
+        this.activitiesVault = activitiesVault;
+        activitiesVault.subscribe(this.activitiesObserver);
+    }
+
+    addActivity(activity: Activity): void {
+        this.activitiesVault.addActivity(activity);
+    }
+
+    removeActivity(activity: Activity): void {
+        this.activitiesVault.removeActivity(activity);
+    }
+
+    modifyActivity(activity: Activity): void {
+        this.activitiesVault.updateActivity(activity);
     }
 
     display(): void {
@@ -26,7 +56,7 @@ export class OneFocusSettingsTab extends PluginSettingTab {
 
         containerEl.createEl('h2', {text: 'OneFocus Settings'});
         //create a editable text field
-        this.plugin.settings.activities.forEach((activity: Activity) => {
+        this.plugin.settings.getActivities().forEach((activity: Activity) => {
         new Setting(containerEl)
             .setName('Activity')
             .setDesc('Modify activities to focus on')
@@ -34,6 +64,7 @@ export class OneFocusSettingsTab extends PluginSettingTab {
                 .setValue(activity.displayName)
                 .onChange(value => {
                     activity.displayName = value;
+                    this.activitiesVault.updateActivity(activity);
                 }));
             });
 
@@ -43,7 +74,7 @@ export class OneFocusSettingsTab extends PluginSettingTab {
             .addButton(button => button
                 .setButtonText('Add')
                 .onClick(() => {
-                    this.plugin.activitiesVault.addActivity(DEFAULT_ONEFOCUS_SETTINGS.activities[0]);
+                    this.activitiesVault.addActivity(DEFAULT_ONEFOCUS_SETTINGS.getActivities()[0]);
                     this.display();
                 }));
     }
