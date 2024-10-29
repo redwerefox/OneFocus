@@ -1,57 +1,9 @@
-import { App, Editor, MarkdownView, Modal, Plugin, PluginSettingTab, Setting } from 'obsidian';
-import { ActivitiesVault, Activity } from 'src/ActivitiesVault';
-import { ActivitiesObserverInterface } from 'src/ActivitiesObserver';
-
+import {  Editor, MarkdownView, Plugin } from 'obsidian';
+import { ActivitiesVault, Activity } from 'src/ActivityVault';
+import { OneFocusSettingsTab, OneFocusSettings, DEFAULT_ONEFOCUS_SETTINGS } from 'src/OneFocusSettingsTab';
+import { ActivitiesModal } from 'src/ActivitiesModal';
 // Remember to rename these classes and interfaces! TODO
 
-interface OneFocusSettings {
-	mySetting: string;
-}
-
-const ONEFOCUS_SETTINGS: OneFocusSettings = {
-	mySetting: 'default'
-}
-
-class OneFocusActivityLogUpdater implements ActivitiesObserverInterface {
-	update(activities: Activity[]): void {
-		console.log(activities);
-	}
-}
-
-class ActivitiesModal extends Modal {
-	
-	activities: Activity[];
-
-
-	constructor(app: App, activities: Activity[]) {
-		super(app);
-		this.activities = activities;
-	}
-
-	makeActivityList(): HTMLElement {
-		const listEl = document.createElement('ul');
-		listEl.addClass('activity-list');
-
-		this.activities.forEach(activity => {
-			const itemEl = document.createElement('li');
-			itemEl.addClass('activity-item');
-			itemEl.setText(activity.displayName);
-			listEl.appendChild(itemEl);
-		});
-
-		return listEl;
-	}
-
-	onOpen() {
-		const {contentEl} = this;
-		contentEl.appendChild(this.makeActivityList());
-	}
-
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
 
 export class CurrentActivityId {
 	activityId: string;
@@ -69,37 +21,10 @@ export class CurrentActivityId {
 	}
 }
 
-class OneFocusSettingTab extends PluginSettingTab {
-	plugin: OneFocus;
-
-	constructor(app: App, plugin: OneFocus) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
-
-	display(): void {
-		const {containerEl} = this;
-
-		containerEl.empty();
-
-		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
-			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue(this.plugin.settings.mySetting)
-				.onChange(async (value) => {
-					this.plugin.settings.mySetting = value;
-					await this.plugin.saveSettings();
-				}));
-	}
-}
-
-export default class OneFocus extends Plugin {
+export class OneFocus extends Plugin {
 	settings: OneFocusSettings;
 
 	activitiesVault: ActivitiesVault;
-	oneFocusActivityLogUpdater: OneFocusActivityLogUpdater;
 
 	activityModal: ActivitiesModal;
 
@@ -114,10 +39,6 @@ export default class OneFocus extends Plugin {
 		this.index = 1;
 		this.activitiesVault = new ActivitiesVault();
 		this.currentActivity = this.activitiesVault.defaultActivity;
-		this.oneFocusActivityLogUpdater = new OneFocusActivityLogUpdater();
-		this.activitiesVault.subscribe(this.oneFocusActivityLogUpdater);
-
-		//Commands
 
 		this.addCommand({
 			id: 'add-activity',
@@ -166,7 +87,7 @@ export default class OneFocus extends Plugin {
 		//ribbonIconEl.addClass('my-plugin-ribbon-class');
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new OneFocusSettingTab(this.app, this));
+		this.addSettingTab(new OneFocusSettingsTab(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -184,7 +105,7 @@ export default class OneFocus extends Plugin {
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, ONEFOCUS_SETTINGS, await this.loadData());
+		this.settings = Object.assign({}, DEFAULT_ONEFOCUS_SETTINGS, await this.loadData());
 	}
 
 	async saveSettings() {

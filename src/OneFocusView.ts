@@ -1,7 +1,5 @@
 
-import OneFocusSettings from "../main"; //these are weird todo
-import { Activity } from 'src/ActivitiesVault';
-import { ActivitiesObserverInterface } from 'src/ActivitiesObserver';
+import { ActivitesObserver } from 'src/ActivityVault';
 
 import {
   //Editor,
@@ -11,27 +9,14 @@ import {
   WorkspaceLeaf,
 } from 'obsidian';
 
-class ActivitesObserver implements ActivitiesObserverInterface {
-  activities: Activity[] = [];
-
-
-  update(activities: Activity[]): void {
-    this.activities = activities;
-  }
-
-  getActivities(): Activity[] { return this.activities; }
-}
-  
-
 export default class OneFocusView extends ItemView
 {
     
-    private readonly settings: OneFocusSettings;
     private activitiesObserver: ActivitesObserver;
 
-    constructor(leaf: WorkspaceLeaf, settings: OneFocusSettings) {
+    constructor(leaf: WorkspaceLeaf, settings: ActivitesObserver) {
       super(leaf);
-      this.settings = settings;
+      this.activitiesObserver = settings;
     }
 
     public getViewType(): string {
@@ -42,10 +27,10 @@ export default class OneFocusView extends ItemView
       return 'OneFocus';
     }
 
-    //todo Icon
-    /*getIcon(): string {
-      return 'calendar';
-    }*/
+    
+    getIcon(): string {
+      return 'logo';
+    }
 
     public load(): void {
       super.load();

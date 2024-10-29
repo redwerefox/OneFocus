@@ -1,5 +1,18 @@
-import { ActivitiesObserverInterface } from './ActivitiesObserver';
 
+export interface ActivitiesObserverInterface {
+    update(activities: Activity[]): void;
+}
+
+export class ActivitesObserver implements ActivitiesObserverInterface {
+    activities: Activity[] = [];
+  
+  
+    update(activities: Activity[]): void {
+      this.activities = activities;
+    }
+  
+    getActivities(): Activity[] { return this.activities; }
+  }
 
 export class Activity {
     id: string;

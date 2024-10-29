@@ -1,11 +1,11 @@
 {
-	"id": "sample-plugin",
-	"name": "Sample Plugin",
-	"version": "1.0.0",
-	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"id": "onefocus-obsidian-plugin",
+	"name": "OneFocus",
+	"version": "prototypeA",
+	"minAppVersion": "1.7.0",
+	"description": "OneFocus is an Obsidian addon designed to help you concentrate on a single topic at a time and evaluate your daily activities.",
+	"author": "Redwerefox / Vulpes",
+	"authorUrl": "https://redwerefox.md", 
+	"fundingUrl": "https://redwerefox.md/pricing",
 	"isDesktopOnly": false
 }
