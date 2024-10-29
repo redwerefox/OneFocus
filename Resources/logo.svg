@@ -1,0 +1,38 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Define the rainbow gradient -->
+  <defs>
+    <linearGradient id="rainbowGradient" gradientUnits="userSpaceOnUse" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF0000"/>
+      <stop offset="16%" stop-color="#FF7F00"/>
+      <stop offset="33%" stop-color="#FFFF00"/>
+      <stop offset="50%" stop-color="#00FF00"/>
+      <stop offset="66%" stop-color="#0000FF"/>
+      <stop offset="83%" stop-color="#4B0082"/>
+      <stop offset="100%" stop-color="#8B00FF"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Draw the almost-closed brushstroke circle -->
+  <circle
+    cx="256"
+    cy="256"
+    r="200"
+    fill="none"
+    stroke="url(#rainbowGradient)"
+    stroke-width="40"
+    stroke-linecap="round"
+    stroke-dasharray="1256 100"
+    transform="rotate(-90 256 256)"
+  />
+
+  <!-- Add the kanji character for "one" in the center -->
+  <text
+    x="256"
+    y="275"
+    font-size="200"
+    text-anchor="middle"
+    fill="black"
+    font-family="Times Roman"
+    dominant-baseline="middle"
+  >一</text>
+</svg>
