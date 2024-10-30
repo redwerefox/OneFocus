@@ -1,7 +1,8 @@
-import {  Editor, MarkdownView, Plugin } from 'obsidian';
-import { Activity, ActivitiesVault } from 'src/ActivityVault';
+import { Editor, MarkdownView, Plugin } from 'obsidian';
+import { Activity, ActivityVault, ActivitesObserver } from 'src/ActivityVault';
 import { OneFocusSettingsTab, OneFocusSettings, DEFAULT_ONEFOCUS_SETTINGS } from 'src/OneFocusSettingsTab';
 import { ActivitiesModal } from 'src/ActivitiesModal';
+import { OneFocusView, OneFocusViewType } from 'src/OneFocusView';
 // Remember to rename these classes and interfaces! TODO
 
 
@@ -25,20 +26,43 @@ export default class OneFocus extends Plugin {
 	settings: OneFocusSettings;
 
 	currentActivity: Activity
-	activitiesVault: ActivitiesVault
-	index : 0;
+	activitiesVault: ActivityVault
+	activitiesObserver: ActivitesObserver
 
+	private readonly toggleOneFocusView = async (): Promise<void> => {
+		const existing = this.app.workspace.getLeavesOfType(OneFocusViewType);
+		if (existing.length) {
+			this.app.workspace.revealLeaf(existing[0]);
+			return;
+		}
+	}
 	
 	async onload() {
 		await this.loadSettings();
-		this.activitiesVault = new ActivitiesVault(this.settings);
+		this.activitiesVault = new ActivityVault(this.settings);
 		this.currentActivity = this.settings.getActivities()[0];
+
+		this.activitiesObserver = new ActivitesObserver();
+		this.activitiesVault.subscribe(this.activitiesObserver);
+
+
+		this.registerView(
+			OneFocusViewType,
+			(leaf) => new OneFocusView(leaf, this.activitiesObserver),
+		);
+
+		this.addCommand({
+			id: 'toggle-onefocus-view',
+			name: 'OneFocus: Toggle OneFocus View',
+			callback: this.toggleOneFocusView,
+		});
 
 		this.addCommand({
 			id: 'add-activity',
 			name: 'OneFocus: Add Activity',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				const activity = new Activity('New Activity'+ this.index);
+				const sel = editor.getSelection();
+				const activity = new Activity(sel);
 				this.settings.addActivity(activity);
 			}
 
@@ -48,7 +72,8 @@ export default class OneFocus extends Plugin {
 			id: 'remove-activity',
 			name: 'OneFocus: Remove Activity',
 			editorCallback: (editor: Editor, view: MarkdownView) => {
-				const activity = new Activity('New Activity' + (this.index - 1));
+				const sel = editor.getSelection();
+				const activity = new Activity(sel);
 				this.settings.removeActivity(activity);
 			}
 		});

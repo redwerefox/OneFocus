@@ -1,6 +1,6 @@
 import { App,  PluginSettingTab, Setting } from 'obsidian';
 import OneFocus from '../main';
-import {Activity, ActivitiesVault, ActivitesObserver} from './ActivityVault';
+import {Activity, ActivityVault, ActivitesObserver} from './ActivityVault';
 
 
 export interface OneFocusSettings {
@@ -27,10 +27,10 @@ export const DEFAULT_ONEFOCUS_SETTINGS: OneFocusSettings = {
 
 export class OneFocusSettingsTab extends PluginSettingTab {
     plugin: OneFocus;
-    activitiesVault: ActivitiesVault;
+    activitiesVault: ActivityVault;
     activitiesObserver: ActivitesObserver;
 
-    constructor(app: App, plugin: OneFocus, activitiesVault: ActivitiesVault) {
+    constructor(app: App, plugin: OneFocus, activitiesVault: ActivityVault) {
         super(app, plugin);
         this.plugin = plugin;
         this.activitiesVault = activitiesVault;

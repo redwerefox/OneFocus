@@ -9,14 +9,16 @@ import {
   WorkspaceLeaf,
 } from 'obsidian';
 
-export default class OneFocusView extends ItemView
+export const OneFocusViewType = 'OneFocus-active-activity';
+
+export class OneFocusView extends ItemView
 {
     
     private activitiesObserver: ActivitesObserver;
 
-    constructor(leaf: WorkspaceLeaf, settings: ActivitesObserver) {
+    constructor(leaf: WorkspaceLeaf, activitiesObserver: ActivitesObserver) {
       super(leaf);
-      this.activitiesObserver = settings;
+      this.activitiesObserver = activitiesObserver;
     }
 
     public getViewType(): string {

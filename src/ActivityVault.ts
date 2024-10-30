@@ -42,7 +42,7 @@ interface OneFocusObservable {
     notifyObservers(): void;
 }
 
-export class ActivitiesVault implements OneFocusObservable {
+export class ActivityVault implements OneFocusObservable {
     activities: Activity[] = []; 
     observers: ActivitiesObserverInterface[] = [];
     defaultActivity: Activity;
@@ -54,6 +54,7 @@ export class ActivitiesVault implements OneFocusObservable {
 
     subscribe(observer: ActivitiesObserverInterface): void {
         this.observers.push(observer);
+        this.notifyObservers();
     }
 
     unsubscribe(observer: ActivitiesObserverInterface): void {
@@ -62,14 +63,17 @@ export class ActivitiesVault implements OneFocusObservable {
 
     addActivity(activity: Activity): void {
         this.activities.push(activity);
+        this.notifyObservers();
     }
 
     removeActivity(activity: Activity): void {
         this.activities = this.activities.filter(a => a.id !== activity.id);
+        this.notifyObservers();
     }
 
     updateActivity(activity: Activity): void {
         this.activities = this.activities.map(a => a.id === activity.id ? activity : a);
+        this.notifyObservers();
     }
 
     notifyObservers(): void {
