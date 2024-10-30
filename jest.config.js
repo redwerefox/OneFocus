@@ -7,4 +7,5 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js', 'json'],
   collectCoverage: true,
   coverageReporters: ['lcov', 'text', 'html'],
+  
 };

@@ -1,7 +1,5 @@
-import { Editor, MarkdownView, Plugin } from 'obsidian';
-import { Activity, ActivityVault, ActivitesObserver } from 'src/ActivityVault';
-import { OneFocusSettingsTab, OneFocusSettings, DEFAULT_ONEFOCUS_SETTINGS } from 'src/OneFocusSettingsTab';
-import { ActivitiesModal } from 'src/ActivitiesModal';
+import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { OneFocusSettingsTab, DEFAULT_ONEFOCUS_SETTINGS, OneFocusSettings, OneFocusActivityManager } from 'src/OneFocusSettingsTab';
 import { OneFocusView, OneFocusViewType } from 'src/OneFocusView';
 // Remember to rename these classes and interfaces! TODO
 
@@ -24,71 +22,68 @@ export class CurrentActivityId {
 
 export default class OneFocus extends Plugin {
 	settings: OneFocusSettings;
+	manager: OneFocusActivityManager;
+	statusBarItemEl: HTMLElement;
 
-	currentActivity: Activity
-	activitiesVault: ActivityVault
-	activitiesObserver: ActivitesObserver
 
-	private readonly toggleOneFocusView = async (): Promise<void> => {
+	async activateView() {
+		const { workspace } = this.app;
+
+		let leaf: WorkspaceLeaf | null = null;
+		const leaves = workspace.getLeavesOfType(OneFocusViewType);
+
+		if (leaves.length > 0) {
+			// A leaf with our view already exists, use that
+			leaf = leaves[0];
+		} else {
+			// Our view could not be found in the workspace, create a new leaf
+			// in the right sidebar for it
+			leaf = workspace.getRightLeaf(false);
+			if (leaf) {
+				await leaf.setViewState({ type: OneFocusViewType, active: true });
+			}
+		}
+
+		// "Reveal" the leaf in case it is in a collapsed sidebar
+		if (leaf)
+			workspace.revealLeaf(leaf);
+	}
+
+	private GetCurrentActivityName() : string {
 		const existing = this.app.workspace.getLeavesOfType(OneFocusViewType);
 		if (existing.length) {
-			this.app.workspace.revealLeaf(existing[0]);
-			return;
+			const view = existing[0].view as OneFocusView;
+			return view.getCurrentActivity().displayName;
 		}
+		else 
+			return "Issue with loading OneFocus view";
+	}
+
+	
+	refreshUi() {
+		this.statusBarItemEl.setText(this.GetCurrentActivityName());
+		this.activateView();
 	}
 	
 	async onload() {
 		await this.loadSettings();
-		this.activitiesVault = new ActivityVault(this.settings);
-		this.currentActivity = this.settings.getActivities()[0];
-
-		this.activitiesObserver = new ActivitesObserver();
-		this.activitiesVault.subscribe(this.activitiesObserver);
-
+		this.statusBarItemEl = this.addStatusBarItem();
+		this.manager = new OneFocusActivityManager(this.settings);
+		
 
 		this.registerView(
 			OneFocusViewType,
-			(leaf) => new OneFocusView(leaf, this.activitiesObserver),
+			(leaf) => new OneFocusView(leaf, this.settings, this.manager, this.refreshUi.bind(this)),
 		);
+
+
+		this.addRibbonIcon('dice', 'OneFocus', () => { this.activateView(); });
 
 		this.addCommand({
 			id: 'toggle-onefocus-view',
-			name: 'OneFocus: Toggle OneFocus View',
-			callback: this.toggleOneFocusView,
+			name: 'Toggle OneFocus View',
+			callback: this.activateView.bind(this),
 		});
-
-		this.addCommand({
-			id: 'add-activity',
-			name: 'OneFocus: Add Activity',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				const sel = editor.getSelection();
-				const activity = new Activity(sel);
-				this.settings.addActivity(activity);
-			}
-
-		});
-
-		this.addCommand({
-			id: 'remove-activity',
-			name: 'OneFocus: Remove Activity',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				const sel = editor.getSelection();
-				const activity = new Activity(sel);
-				this.settings.removeActivity(activity);
-			}
-		});
-
-		this.addCommand({
-			id: 'see-activities',
-			name: 'OneFocus: See Activities',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				new ActivitiesModal(this.app, this.settings.getActivities()).open();
-			}
-		});
-
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText(this.currentActivity.displayName); 
 
 		//todo: consider a ribbon icon
 
@@ -102,7 +97,7 @@ export default class OneFocus extends Plugin {
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		
-		this.addSettingTab(new OneFocusSettingsTab(this.app, this, this.activitiesVault));
+		this.addSettingTab(new OneFocusSettingsTab(this.app, this, this.manager));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -114,6 +109,8 @@ export default class OneFocus extends Plugin {
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 
 	}
+
+	
 
 	onunload() {
 

@@ -1,7 +1,7 @@
 // Code language: TypeScript
 
 import { App,  Modal } from 'obsidian';
-import {Activity} from './ActivityVault';
+import {Activity} from './Activity';
 
 export class ActivitiesModal extends Modal {
 	
