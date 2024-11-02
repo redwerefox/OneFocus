@@ -13,7 +13,7 @@ export class OneFocusDailyTimeTracker {
     }
 
     public onCurrentActivityChanged(newActivity: Activity) {
-        if (newActivity.id !== this.currentActivityEvent?.activity.id) {
+        if (this.currentActivityEvent && newActivity.id !== this.currentActivityEvent?.activity.id) {
            this.currentActivityEvent = this.handleNewActivityEvent(this.currentActivityEvent, newActivity);
         }
     }
