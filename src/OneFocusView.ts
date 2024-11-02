@@ -12,17 +12,18 @@ import {
 export const OneFocusViewType = 'OneFocus-active-activity';
 
 class GetActivitiesAndReOpen implements ActivityObserver {
-  activities: Activity[];
-  openFunction: () => void;
+  refreshFunctions : ((activities : Activity[]) => void)[];
 
-  constructor( openFunction: () => void) {
-    this.activities = [];
-    this.openFunction = openFunction;
+  constructor() {
+    this.refreshFunctions = [];
+  }
+
+  appendCallbacks(openFunction: () => void): void {
+    this.refreshFunctions.push(openFunction);
   }
 
   update(activities: Activity[]): void {
-    this.activities = activities;
-    this.openFunction();
+    this.refreshFunctions.forEach(f => f(activities));
   }
 }
 
@@ -37,7 +38,9 @@ export class OneFocusView extends ItemView
     constructor(leaf: WorkspaceLeaf, OneFocusSettings: OneFocusSettings, manager: OneFocusActivityManager, refresh: () => void) {
       super(leaf);
       this.OneFocusSettings = OneFocusSettings;
-      this.getActivitiesAndReOpen = new GetActivitiesAndReOpen(refresh);
+      this.getActivitiesAndReOpen = new GetActivitiesAndReOpen();
+      this.getActivitiesAndReOpen.appendCallbacks(refresh);
+      this.getActivitiesAndReOpen.appendCallbacks(() => this.onOpen());
       manager.Subscribe(this.getActivitiesAndReOpen); // Todo This needs to be done different
     }
 
@@ -46,7 +49,7 @@ export class OneFocusView extends ItemView
     }
 
     public getViewType(): string {
-      return "current-active-activity";
+      return OneFocusViewType;
     }
 
     public getDisplayText(): string {
@@ -74,6 +77,7 @@ export class OneFocusView extends ItemView
         button.addEventListener('click', () => {
           new Notice(`You clicked on ${activity.displayName}`);
           this.currentActivity = activity;
+          this.getActivitiesAndReOpen.update(activities);
         });
     });}
 

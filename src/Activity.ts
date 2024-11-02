@@ -16,3 +16,24 @@ export class Activity {
         });
     }
 }
+
+export class ActivityEvent {
+    activity: Activity;
+    startTime: Date;
+    // make Optional endTime
+    endTime: Date | null;
+
+    constructor(activity: Activity, startTime: Date) {
+        this.activity = activity;
+        this.startTime = startTime;
+        this.endTime = null;
+    }
+
+    //end Time? really nessesary
+    makeMarkdownText = (): string => {
+        if (this.endTime === null) {
+            return " ${this.startTime} : ${this.activity.displayName} ";
+        } 
+        return " ${this.startTime} : ${this.endTime} : ${this.activity.displayName} ";
+    }
+}

@@ -48,6 +48,11 @@ export class OneFocusActivityManager {
         this.activitySubject = new ActivitySubjectImpl();
     }
 
+    public ClearActivities(): void {
+        this.settings.activities = [];
+        this.activitySubject.notify(this.settings.activities);
+    }
+
     public Subscribe(observer: ActivityObserver): void {
         this.activitySubject.subscribe(observer);
     }
