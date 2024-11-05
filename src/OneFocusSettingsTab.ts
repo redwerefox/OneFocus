@@ -94,7 +94,7 @@ export class OneFocusActivityManager {
 }
 
 export const DEFAULT_ONEFOCUS_SETTINGS: Partial<OneFocusSettings> = {
-    activities: [new Activity('No Activity')],
+    activities: [new Activity()],
 };
 
 export class OneFocusSettingsTab extends PluginSettingTab {
@@ -127,7 +127,8 @@ export class OneFocusSettingsTab extends PluginSettingTab {
         containerEl.empty();
 
         containerEl.createEl('h2', {text: 'OneFocus Settings'});
-        //create a editable text field
+        //create a editable text field and a text to change color
+        
         this.plugin.settings.activities.forEach((activity: Activity) => {
         new Setting(containerEl)
             .setName('Activity')
@@ -135,10 +136,15 @@ export class OneFocusSettingsTab extends PluginSettingTab {
             .addText(text => text
                 .setValue(activity.displayName)
                 .onChange(value => {
-                    activity.displayName = value;
-                    this.modifyActivity(activity);
+                    activity.setName(value);
                     this.plugin.saveData(this.plugin.settings);
-                }));
+                })).addColorPicker(color => color
+                    .setValue(activity.color)
+                    .onChange(value => {
+                        activity.color = value;
+                        this.modifyActivity(activity);
+                        this.plugin.saveData(this.plugin.settings);
+                    }));
             });
 
         new Setting(containerEl)
@@ -147,7 +153,7 @@ export class OneFocusSettingsTab extends PluginSettingTab {
             .addButton(button => button
                 .setButtonText('Add')
                 .onClick(() => {
-                    this.addActivity(new Activity('New Activity'));
+                    this.addActivity(new Activity());
                     this.display();
                     this.plugin.saveData(this.plugin.settings);
                 }));

@@ -52,19 +52,19 @@ export default class OneFocus extends Plugin {
 		}
 	}
 
-	private GetCurrentActivity(): Activity {
+	private GetCurrentActivity(): Activity | undefined {
 		const existing = this.app.workspace.getLeavesOfType(OneFocusViewType);
 		if (existing.length) {
 			const view = existing[0].view as OneFocusView;
 			return view.getCurrentActivity();
 		}
 		else
-			return new Activity ("Issue with loading OneFocus view");
+			return undefined;
 	}
 
 
 	refreshUi() {
-		this.statusBarItemEl.setText(this.GetCurrentActivity().displayName);
+		this.statusBarItemEl.setText(this.GetCurrentActivity()?.displayName ?? 'Issue loading activity');
 		this.timeTracker.onCurrentActivityChanged(this.GetCurrentActivity());
 		this.activateView();
 	}

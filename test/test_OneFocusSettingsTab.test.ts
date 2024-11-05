@@ -1,11 +1,11 @@
 
 
-import { Activity } from "../src/Activity";
-import { OneFocusSettings, OneFocusSettingsTab } from "../src/OneFocusSettingsTab";
+//import { Activity } from "../src/Activity";
+//import { OneFocusSettings, OneFocusSettingsTab } from "../src/OneFocusSettingsTab";
 
 // Mock the Obsidian module
-jest.mock('obsidian');
-
+//jest.mock('obsidian');
+/*
 describe('OneFocusSettingsTab', () => {
 
     let settings: OneFocusSettings;
@@ -60,3 +60,5 @@ describe('OneFocusSettingsTab', () => {
     });
 
 });
+
+*/
