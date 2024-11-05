@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { Notice, Plugin, WorkspaceLeaf } from 'obsidian';
 import { OneFocusSettingsTab, DEFAULT_ONEFOCUS_SETTINGS, OneFocusSettings, OneFocusActivityManager } from 'src/OneFocusSettingsTab';
 import { OneFocusView, OneFocusViewType } from 'src/OneFocusView';
 import { OneFocusDailyTimeTracker } from 'src/OneFocusTimeTracker';
@@ -26,6 +26,7 @@ export default class OneFocus extends Plugin {
 	settings: OneFocusSettings;
 	manager: OneFocusActivityManager;
 	timeTracker: OneFocusDailyTimeTracker;
+	view : OneFocusView | undefined;
 	statusBarItemEl: HTMLElement;
 
 	async activateView() {
@@ -49,6 +50,10 @@ export default class OneFocus extends Plugin {
 		if (leaf)
 		{
 			workspace.revealLeaf(leaf);
+			this.view = leaf.view as OneFocusView;
+			this.timeTracker.SetViewersTodaysActivitiesCallback((events) => {
+				new Notice('Update View with activity Update');
+			});
 		}
 	}
 

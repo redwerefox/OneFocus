@@ -75,8 +75,9 @@ export class Activity {
 export class ActivityTimeView {
     activityName: string;
     startTime: Date;
+    endTime: Date | undefined;
 
-    public static fromMarkdownText = (text: string): ActivityTimeView | undefined => {
+    public static fromMarkdownText = (text: string, textNextLine: string | undefined): ActivityTimeView | undefined => {
         const parts = text.split(" - ");
         if (parts.length < 2) {
             return undefined;
@@ -86,6 +87,17 @@ export class ActivityTimeView {
         
         activityView.activityName = (parts[1]);
         activityView.startTime = time;
+
+        if (textNextLine) {
+
+        //parse next line
+        const partsNextLine = textNextLine.split(" - ");
+        if (partsNextLine.length < 2) {
+            return undefined;
+        }
+        const timeNextLine = new Date(partsNextLine[0]);
+        activityView.endTime = timeNextLine; }
+        
         return activityView;
     }
 }
@@ -108,7 +120,7 @@ export class ActivityEvent {
 
     //end Time? really nessesary
     public makeMarkdownText = (): string => { 
-        return ` ${this.startTimeFormatted()} -  ${this.activity.displayName}\n`;
+        return `${this.startTimeFormatted()} - ${this.activity.displayName}\n`;
     }
 
 }

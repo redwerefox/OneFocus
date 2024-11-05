@@ -1,5 +1,6 @@
-import { Activity } from './Activity';
+import { Activity, ActivityTimeView} from './Activity';
 import { OneFocusSettings, ActivityObserver, OneFocusActivityManager } from './OneFocusSettingsTab';
+import { OneFocusDailyTimeTrackerViewer } from './OneFocusTimeTracker';
 
 import {
   //Editor,
@@ -10,6 +11,53 @@ import {
 } from 'obsidian';
 
 export const OneFocusViewType = 'OneFocus-active-activity';
+
+class ActivityPercentage {
+  activity: Activity;
+  percentage: number;
+}
+
+class TodaysTimeTrackerViewer implements OneFocusDailyTimeTrackerViewer {
+
+  processActivityTimeView(activityTimeViews : ActivityTimeView[]): void {
+    this.calculateActivityPercentages(activityTimeViews);
+  }
+
+  seconds ( startDateTime : Date, endDateTime : Date) : number {
+    return (endDateTime.getTime() - startDateTime.getTime()) / 1000; }
+
+  // calculate percentages of time spent on each activity
+  // return an array of ActivityPercentage
+  calculateActivityPercentages(activityTimeViews : ActivityTimeView[] ): ActivityPercentage[] {
+    const activityPercentages: ActivityPercentage[] = [];
+    const activityTimeMap = new Map<string, number>();
+
+    activityTimeViews.forEach((activityTimeView) => {
+      const activityName = activityTimeView.activityName;
+      
+      const thisStartDate = activityTimeView.startTime;
+      const nextStartDate = activityTimeView.endTime ?? new Date();
+      
+      const duration = this.seconds(thisStartDate, nextStartDate);
+      if (activityTimeMap.has(activityName)) {
+        activityTimeMap.set(activityName, activityTimeMap.get(activityName) ?? 0 + duration);
+      } else {
+        activityTimeMap.set(activityName, duration);
+      }
+
+    });
+
+    activityTimeMap.forEach((value, key) => {
+      const activityPercentage = new ActivityPercentage();
+      activityPercentage.activity = new Activity();
+      activityPercentage.activity.displayName = key;
+      activityPercentage.percentage = value;
+      activityPercentages.push(activityPercentage);
+    });
+
+    return activityPercentages;
+  }
+}
 
 class GetActivitiesAndReOpen implements ActivityObserver {
   refreshFunctions: ((activities: Activity[]) => void)[];
@@ -30,6 +78,7 @@ class GetActivitiesAndReOpen implements ActivityObserver {
 export class OneFocusView extends ItemView {
   private OneFocusSettings: OneFocusSettings;
   private getActivitiesAndReOpen: GetActivitiesAndReOpen;
+  private timeTracker: OneFocusDailyTimeTrackerViewer = new TodaysTimeTrackerViewer();
 
   // None or current activity as Optional
   private currentActivity?: Activity;
@@ -41,10 +90,24 @@ export class OneFocusView extends ItemView {
     this.getActivitiesAndReOpen.appendCallbacks(refresh);
     this.getActivitiesAndReOpen.appendCallbacks(() => this.onOpen());
     manager.Subscribe(this.getActivitiesAndReOpen); // Todo This needs to be done different
+
+    //setUp Tick per minute
+    setInterval(() => {
+      this.tickPeriodic();
+    }, 60000);
+  }
+
+  // check life performance
+  async tickPeriodic() {
+    this.onOpen();
   }
 
   public GetActivityObserver(): ActivityObserver {
     return this.getActivitiesAndReOpen;
+  }
+
+  public GetTimeTrackerViewer(): OneFocusDailyTimeTrackerViewer {
+    return this.timeTracker;
   }
 
   public getViewType(): string {
@@ -96,7 +159,12 @@ export class OneFocusView extends ItemView {
       //make button text dark grey
       button.style.color = 'black';
       button.style.webkitTextStrokeColor = 'black';
+
+      //make a bargraph
+
     });
+
+
   }
 
   async onClose() {

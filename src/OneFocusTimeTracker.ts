@@ -1,6 +1,11 @@
 import { ActivityEvent, Activity, ActivityTimeView } from './Activity';
 import { App, TFile } from 'obsidian';
 
+export interface OneFocusDailyTimeTrackerViewer {
+    
+    // needs to have a function that gets an array of ActivityTimeView
+    processActivityTimeView(activityTimeView : ActivityTimeView[]) : void ;
+}
 
 export class OneFocusDailyTimeTracker {
 
@@ -8,8 +13,7 @@ export class OneFocusDailyTimeTracker {
     private currentActivityEvent: ActivityEvent | undefined = undefined;
     private FILE_PREFIX = "OneFocus-";
     private  app : App;
-
-    private callback: (events: ActivityTimeView[]) => void;
+    private viewers: OneFocusDailyTimeTrackerViewer[] = [];
 
     constructor(app: App) {
         this.app = app;
@@ -21,15 +25,15 @@ export class OneFocusDailyTimeTracker {
         }
         
         // dont block calling parseTodaysActivities
-        this.parseTodaysActivities().then((events) => {
-            if (this.callback) {
-                this.callback(events);
-            }
+        this.parseTodaysActivities().then( activitiesView => {
+            this.viewers.forEach(viewer => {
+                viewer.processActivityTimeView(activitiesView);
+            });
         });
     }
 
-    public SetViewersTodaysActivitiesCallback(callback: (events: ActivityTimeView[]) => void) {
-        this.callback = callback;
+    public Subscribe(viewer: OneFocusDailyTimeTrackerViewer) {
+        this.viewers.push(viewer);
     }
 
     async parseTodaysActivities() : Promise<ActivityTimeView[]> {
@@ -41,12 +45,21 @@ export class OneFocusDailyTimeTracker {
         const activityEvents: ActivityTimeView[] = [];
         const content = await this.app.vault.adapter.read(file.path);
         const lines = content.split("\n");
-        for (const line of lines) {
-            const event = ActivityTimeView.fromMarkdownText(line);
+
+        //enumerate loop lines
+        lines.forEach((line, index) => {
+
+            let nextLine = undefined
+
+            if(index === lines.length - 1) {
+                nextLine = lines[index + 1];
+            }
+
+            const event = ActivityTimeView.fromMarkdownText(line, nextLine);
             if (event) {
                 activityEvents.push(event);
             }
-        }
+        });
         return activityEvents;
     }
 

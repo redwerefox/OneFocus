@@ -25,4 +25,3 @@ export class PluginSettingTab {
         this.plugin = plugin;
     }
 }
-
