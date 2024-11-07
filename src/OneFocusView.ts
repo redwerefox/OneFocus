@@ -135,8 +135,11 @@ export class OneFocusView extends ItemView {
     const containerEl = this.containerEl.children[1];
     containerEl.empty();
     containerEl.createEl('h2', { text: 'OneFocus' });
-    containerEl.createEl('p', { text: 'This is the OneFocus view' });
+    containerEl.createEl('p', { text: 'Currently tracked activity:' });
 
+    containerEl.createEl('button', { text: this.getCurrentActivityDisplay() });  
+
+    containerEl.createEl('p', { text: 'What are you focusing on?:' });
     // make buttons for each activity in the activitiesObserver, color them in activity color
     const activities = this.OneFocusSettings.activities;
     activities.forEach(activity => {
@@ -163,6 +166,10 @@ export class OneFocusView extends ItemView {
       //make a bargraph
 
     });
+
+    containerEl.createEl('p', { text: 'Today:' });
+    // make a bargraph of time spent on each activity
+    
 
 
   }

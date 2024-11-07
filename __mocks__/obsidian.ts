@@ -25,3 +25,22 @@ export class PluginSettingTab {
         this.plugin = plugin;
     }
 }
+
+export class PluginMock {
+    settings: any;
+
+    constructor() {
+        this.settings = {
+            activities: [],
+        };
+    }
+
+    getSettings() {
+        return this.settings;
+    }
+
+    getActivities() {
+        return this.settings.activities;
+    }
+
+}   
