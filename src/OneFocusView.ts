@@ -1,3 +1,4 @@
+
 import { Activity, ActivityTimeView} from './Activity';
 import { OneFocusSettings, ActivityObserver, OneFocusActivityManager } from './OneFocusSettingsTab';
 import { OneFocusDailyTimeTrackerViewer } from './OneFocusTimeTracker';
@@ -19,8 +20,14 @@ class ActivityPercentage {
 
 class TodaysTimeTrackerViewer implements OneFocusDailyTimeTrackerViewer {
 
+  activityPercentages: ActivityPercentage[] = [];
+
   processActivityTimeView(activityTimeViews : ActivityTimeView[]): void {
     this.calculateActivityPercentages(activityTimeViews);
+  }
+
+  public GetActivityPercentages(): ActivityPercentage[] {
+    return this.activityPercentages;
   }
 
   seconds ( startDateTime : Date, endDateTime : Date) : number {
@@ -78,7 +85,7 @@ class GetActivitiesAndReOpen implements ActivityObserver {
 export class OneFocusView extends ItemView {
   private OneFocusSettings: OneFocusSettings;
   private getActivitiesAndReOpen: GetActivitiesAndReOpen;
-  private timeTracker: OneFocusDailyTimeTrackerViewer = new TodaysTimeTrackerViewer();
+  private timeTrackerViewer: TodaysTimeTrackerViewer = new TodaysTimeTrackerViewer();
 
   // None or current activity as Optional
   private currentActivity?: Activity;
@@ -107,7 +114,7 @@ export class OneFocusView extends ItemView {
   }
 
   public GetTimeTrackerViewer(): OneFocusDailyTimeTrackerViewer {
-    return this.timeTracker;
+    return this.timeTrackerViewer;
   }
 
   public getViewType(): string {
@@ -137,7 +144,16 @@ export class OneFocusView extends ItemView {
     containerEl.createEl('h2', { text: 'OneFocus' });
     containerEl.createEl('p', { text: 'Currently tracked activity:' });
 
-    containerEl.createEl('button', { text: this.getCurrentActivityDisplay() });  
+    const currentActivityButton = containerEl.createEl('button', { text: this.getCurrentActivityDisplay() });
+    currentActivityButton.style.width = '99%';           // Make the button take up most of the view width
+    currentActivityButton.style.padding = '15px 0';      // Increase padding for a larger button
+    currentActivityButton.style.fontSize = '1.2em';      // Increase font size for readability
+    currentActivityButton.style.borderRadius = '8px';    // Rounded corners
+
+    //make buttons big and fill the view space
+    currentActivityButton.style.flex = '1';
+    currentActivityButton.style.columnFill = 'balance';
+    currentActivityButton.style.backgroundColor = this.getCurrentActivity()?.color ?? 'default';  
 
     containerEl.createEl('p', { text: 'What are you focusing on?:' });
     // make buttons for each activity in the activitiesObserver, color them in activity color
@@ -158,18 +174,57 @@ export class OneFocusView extends ItemView {
       //make buttons big and fill the view space
       button.style.flex = '1';
       button.style.columnFill = 'balance';
-      button.style.backgroundColor = activity.color;
+      button.style.backgroundColor = activity.color;      
       //make button text dark grey
       button.style.color = 'black';
-      button.style.webkitTextStrokeColor = 'black';
+      //button.style.webkitTextStrokeColor = 'black';
 
       //make a bargraph
 
     });
 
     containerEl.createEl('p', { text: 'Today:' });
-    // make a bargraph of time spent on each activity
-    
+    containerEl.createEl('p', { text: 'Today:' });
+
+  // Get activity percentages
+  const activityPercentages = this.timeTrackerViewer.GetActivityPercentages();
+
+  // Check if data is available
+  if (activityPercentages && activityPercentages.length > 0) {
+    // Create bar graph container
+    const barGraphContainer = containerEl.createDiv();
+    barGraphContainer.style.display = 'flex';
+    barGraphContainer.style.alignItems = 'flex-end';
+    barGraphContainer.style.height = '200px';
+    barGraphContainer.style.marginTop = '20px';
+
+    // Calculate total time to compute percentages accurately
+    const totalDuration = activityPercentages.reduce((sum, ap) => sum + ap.percentage, 0);
+
+    activityPercentages.forEach(activityPercentage => {
+      // Create individual bar container
+      const barContainer = barGraphContainer.createDiv();
+      barContainer.style.flex = '1';
+      barContainer.style.margin = '0 5px';
+      barContainer.style.textAlign = 'center';
+
+      // Create bar
+      const bar = barContainer.createDiv();
+      const percentage = (activityPercentage.percentage / totalDuration) * 100;
+      bar.style.height = `${percentage}%`;
+      bar.style.backgroundColor = activityPercentage.activity.color ?? 'blue';
+      bar.style.borderRadius = '4px 4px 0 0';
+
+      // Add label below the bar
+      const label = barContainer.createDiv();
+      label.textContent = activityPercentage.activity.displayName;
+      label.style.marginTop = '5px';
+      label.style.fontSize = '0.9em';
+    });
+  } else {
+    containerEl.createEl('p', { text: 'No activity data available for today.' });
+  }
+
 
 
   }
