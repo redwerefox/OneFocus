@@ -36,7 +36,7 @@ export class OneFocusDailyTimeTracker {
         this.viewers.push(viewer);
     }
 
-    async parseTodaysActivities() : Promise<ActivityTimeView[]> {
+    public async parseTodaysActivities() : Promise<ActivityTimeView[]> {
         const todaysFileName = this.makeFileName(new ActivityEvent(new Activity(), new Date()));
         const file = this.app.vault.getAbstractFileByPath(todaysFileName) as TFile;
         if (!file) {

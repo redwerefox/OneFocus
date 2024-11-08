@@ -1,7 +1,7 @@
 
 import { Activity, ActivityTimeView} from './Activity';
 import { OneFocusSettings, ActivityObserver, OneFocusActivityManager } from './OneFocusSettingsTab';
-import { OneFocusDailyTimeTrackerViewer } from './OneFocusTimeTracker';
+import { OneFocusDailyTimeTrackerViewer as OneFocusDailyTimeTrackerObserver } from './OneFocusTimeTracker';
 
 import {
   //Editor,
@@ -18,7 +18,7 @@ class ActivityPercentage {
   percentage: number;
 }
 
-class TodaysTimeTrackerViewer implements OneFocusDailyTimeTrackerViewer {
+class TodaysTimeTrackerObserver implements OneFocusDailyTimeTrackerObserver {
 
   activityPercentages: ActivityPercentage[] = [];
 
@@ -73,8 +73,9 @@ class GetActivitiesAndReOpen implements ActivityObserver {
     this.refreshFunctions = [];
   }
 
-  appendCallbacks(openFunction: () => void): void {
-    this.refreshFunctions.push(openFunction);
+  insertInFrontCallback(openFunction: () => void): void {
+    //insert in front of array
+    this.refreshFunctions.unshift(openFunction);
   }
 
   update(activities: Activity[]): void {
@@ -85,18 +86,18 @@ class GetActivitiesAndReOpen implements ActivityObserver {
 export class OneFocusView extends ItemView {
   private OneFocusSettings: OneFocusSettings;
   private getActivitiesAndReOpen: GetActivitiesAndReOpen;
-  private timeTrackerViewer: TodaysTimeTrackerViewer = new TodaysTimeTrackerViewer();
+  private timeTrackerViewer: TodaysTimeTrackerObserver = new TodaysTimeTrackerObserver();
 
   // None or current activity as Optional
   private currentActivity?: Activity;
 
-  constructor(leaf: WorkspaceLeaf, OneFocusSettings: OneFocusSettings, manager: OneFocusActivityManager, refresh: () => void) {
+  constructor(leaf: WorkspaceLeaf, OneFocusSettings: OneFocusSettings, manager: OneFocusActivityManager) {
     super(leaf);
     this.OneFocusSettings = OneFocusSettings;
     this.getActivitiesAndReOpen = new GetActivitiesAndReOpen();
-    this.getActivitiesAndReOpen.appendCallbacks(refresh);
-    this.getActivitiesAndReOpen.appendCallbacks(() => this.onOpen());
+    this.getActivitiesAndReOpen.insertInFrontCallback(() => this.onOpen());
     manager.Subscribe(this.getActivitiesAndReOpen); // Todo This needs to be done different
+    this.timeTrackerViewer = new TodaysTimeTrackerObserver();
 
     //setUp Tick per minute
     setInterval(() => {
@@ -113,8 +114,12 @@ export class OneFocusView extends ItemView {
     return this.getActivitiesAndReOpen;
   }
 
-  public GetTimeTrackerViewer(): OneFocusDailyTimeTrackerViewer {
+  public GetTimeTrackerObserver(): OneFocusDailyTimeTrackerObserver {
     return this.timeTrackerViewer;
+  }
+
+  public InsertInFrontCallback(openFunction: () => void): void {
+    this.getActivitiesAndReOpen.insertInFrontCallback(openFunction);
   }
 
   public getViewType(): string {

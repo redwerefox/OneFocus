@@ -1,4 +1,4 @@
-import { Notice, Plugin, WorkspaceLeaf } from 'obsidian';
+import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { OneFocusSettingsTab, DEFAULT_ONEFOCUS_SETTINGS, OneFocusSettings, OneFocusActivityManager } from 'src/OneFocusSettingsTab';
 import { OneFocusView, OneFocusViewType } from 'src/OneFocusView';
 import { OneFocusDailyTimeTracker } from 'src/OneFocusTimeTracker';
@@ -51,9 +51,7 @@ export default class OneFocus extends Plugin {
 		{
 			workspace.revealLeaf(leaf);
 			this.view = leaf.view as OneFocusView;
-			this.timeTracker.SetViewersTodaysActivitiesCallback((events) => {
-				new Notice('Update View with activity Update');
-			});
+			
 		}
 	}
 
@@ -82,11 +80,17 @@ export default class OneFocus extends Plugin {
 
 		// make event on activity change to update the current activity in Time tracker
 
-
 		this.registerView(
 			OneFocusViewType,
-			(leaf) => new OneFocusView(leaf, this.settings, this.manager, this.refreshUi.bind(this)),
+			(leaf) => new OneFocusView(leaf, this.settings, this.manager),
 		);
+		//get OneFocusView
+		const leaves = this.app.workspace.getLeavesOfType(OneFocusViewType);
+		if (leaves.length > 0) {
+			const OneFocusView = leaves[0].view as OneFocusView;
+			this.timeTracker.Subscribe(OneFocusView.GetTimeTrackerObserver());
+			OneFocusView.InsertInFrontCallback(() => this.refreshUi());
+		}
 
 
 		this.addRibbonIcon('dice', 'OneFocus', () => { this.activateView(); });
