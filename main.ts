@@ -51,7 +51,8 @@ export default class OneFocus extends Plugin {
 		{
 			workspace.revealLeaf(leaf);
 			this.view = leaf.view as OneFocusView;
-			
+			this.timeTracker.Subscribe(this.view.GetTimeTrackerObserver());
+			this.view.InsertInFrontCallback(() => this.refreshUi());
 		}
 	}
 
@@ -68,8 +69,8 @@ export default class OneFocus extends Plugin {
 
 	refreshUi() {
 		this.statusBarItemEl.setText(this.GetCurrentActivity()?.displayName ?? 'Issue loading activity');
-		this.timeTracker.onCurrentActivityChanged(this.GetCurrentActivity());
 		this.activateView();
+		this.timeTracker.onCurrentActivityChanged(this.GetCurrentActivity());
 	}
 
 	async onload() {
@@ -84,32 +85,15 @@ export default class OneFocus extends Plugin {
 			OneFocusViewType,
 			(leaf) => new OneFocusView(leaf, this.settings, this.manager),
 		);
-		//get OneFocusView
-		const leaves = this.app.workspace.getLeavesOfType(OneFocusViewType);
-		if (leaves.length > 0) {
-			const OneFocusView = leaves[0].view as OneFocusView;
-			this.timeTracker.Subscribe(OneFocusView.GetTimeTrackerObserver());
-			OneFocusView.InsertInFrontCallback(() => this.refreshUi());
-		}
 
 
-		this.addRibbonIcon('dice', 'OneFocus', () => { this.activateView(); });
+		this.addRibbonIcon('calendar-clock', 'OneFocus', () => { this.activateView(); });
 
 		this.addCommand({
 			id: 'toggle-onefocus-view',
 			name: 'Toggle OneFocus View',
 			callback: this.activateView.bind(this),
 		});
-
-		//todo: consider a ribbon icon
-
-		// This creates an icon in the left ribbon.
-		/*const ribbonIconEl = this.addRibbonIcon('dice', 'Sample Plugin', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
-		});*/
-		// Perform additional things with the ribbon
-		//ribbonIconEl.addClass('my-plugin-ribbon-class');
 
 		// This adds a settings tab so the user can configure various aspects of the plugin
 

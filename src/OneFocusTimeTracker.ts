@@ -10,7 +10,6 @@ export interface OneFocusDailyTimeTrackerViewer {
 export class OneFocusDailyTimeTracker {
 
     //access daily notes
-    private currentActivityEvent: ActivityEvent | undefined = undefined;
     private FILE_PREFIX = "OneFocus-";
     private  app : App;
     private viewers: OneFocusDailyTimeTrackerViewer[] = [];
@@ -20,23 +19,27 @@ export class OneFocusDailyTimeTracker {
     }
 
     public onCurrentActivityChanged(newActivity: Activity | undefined) : void  {
-        if (newActivity && newActivity.id !== ( this.currentActivityEvent?.activity.id ?? "") ) {
-           this.currentActivityEvent = this.handleNewActivityEvent(this.currentActivityEvent, newActivity);
+        if (newActivity !== undefined) {
+            this.handleNewActivityEvent(newActivity);
         }
-        
-        // dont block calling parseTodaysActivities
-        this.parseTodaysActivities().then( activitiesView => {
-            this.viewers.forEach(viewer => {
-                viewer.processActivityTimeView(activitiesView);
+    }
+
+    private handleNewActivityEvent(activity: Activity): void {
+
+        const activityEvent = new ActivityEvent(activity, new Date());
+        this.AppendNewActivityTimeStamp(activityEvent).then(async () => {
+            const todaysActivities = await this.parseTodaysActivities();
+            this.viewers.forEach((viewer) => {
+                viewer.processActivityTimeView(todaysActivities);
             });
         });
-    }
+}
 
     public Subscribe(viewer: OneFocusDailyTimeTrackerViewer) {
         this.viewers.push(viewer);
     }
 
-    public async parseTodaysActivities() : Promise<ActivityTimeView[]> {
+    async  parseTodaysActivities() : Promise<ActivityTimeView[]> {
         const todaysFileName = this.makeFileName(new ActivityEvent(new Activity(), new Date()));
         const file = this.app.vault.getAbstractFileByPath(todaysFileName) as TFile;
         if (!file) {
@@ -74,7 +77,7 @@ export class OneFocusDailyTimeTracker {
 		//make TFile from path
 		const file = vault.getAbstractFileByPath(fileName) as TFile;
         const existingContent = await vault.adapter.read(file.path);
-        const newContent = `${existingContent}\n${this.currentActivityEvent?.makeMarkdownText()}`;
+        const newContent = `${existingContent}\n${this.getEventMarkdownText(event)}`;
         await vault.adapter.write(file.path, newContent);
         
 	}
@@ -82,15 +85,6 @@ export class OneFocusDailyTimeTracker {
     private makeFileName(Event: ActivityEvent): string {
 
         return  this.FILE_PREFIX + " " + Event.startTime.toDateString() + ".md";
-    }
-
-    private handleNewActivityEvent(oldActivityEvent: ActivityEvent | undefined, activity: Activity) : ActivityEvent {
-        if (oldActivityEvent !== undefined) {
-            this.AppendNewActivityTimeStamp(oldActivityEvent);
-        }
-        const endTime = new Date();
-        this.currentActivityEvent = new ActivityEvent(activity, endTime);
-        return this.currentActivityEvent;
     }
 
     private getEventMarkdownText(event: ActivityEvent): string {

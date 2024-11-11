@@ -144,7 +144,13 @@ export class OneFocusSettingsTab extends PluginSettingTab {
                         activity.color = value;
                         this.modifyActivity(activity);
                         this.plugin.saveData(this.plugin.settings);
-                    }));
+                    })).addButton(button => button
+                        .setButtonText('Remove')
+                        .onClick(() => {
+                            this.removeActivity(activity);
+                            this.display();
+                            this.plugin.saveData(this.plugin.settings);
+                        }));
             });
 
         new Setting(containerEl)
