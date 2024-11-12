@@ -50,6 +50,12 @@ export default class OneFocus extends Plugin {
 		if (leaf)
 		{
 			workspace.revealLeaf(leaf);
+			const view = leaf.view as OneFocusView;
+			this.timeTracker.Subscribe(view.GetTimeTrackerObserver());
+			this.manager.Subscribe(view.GetActivityObserver());
+			view.onSignalCurrentActivityChanged(this.OnActivityChange.bind(this));
+			view.RefreshUI();
+			this.view = view;
 		}
 	}
 
@@ -78,17 +84,11 @@ export default class OneFocus extends Plugin {
 
 		// make event on activity change to update the current activity in Time tracker
 
+
 		this.registerView(
 			OneFocusViewType,
-			(leaf) => this.view = new OneFocusView(leaf, this.settings, this.manager)
+			(leaf) => new OneFocusView(leaf)
 		);
-
-		// get OneFocusView
-		if(this.view) {
-			this.timeTracker.Subscribe(this.view.GetTimeTrackerObserver());
-			this.manager.Subscribe(this.view.GetActivityObserver());
-			this.view.onSignalCurrentActivityChanged(this.OnActivityChange.bind(this));
-		}	
 
 
 		this.addRibbonIcon('calendar-clock', 'OneFocus', () => { this.activateView(); });

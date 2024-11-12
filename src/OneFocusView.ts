@@ -2,7 +2,7 @@
 
 import { EventEmitter } from 'events';
 import { Activity, ActivityTimeView } from './Activity';
-import { OneFocusSettings, ActivityObserver, OneFocusActivityManager } from './OneFocusSettingsTab';
+import { ActivityObserver } from './OneFocusSettingsTab';
 import { OneFocusDailyTimeTrackerViewer as OneFocusDailyTimeTrackerObserver } from './OneFocusTimeTracker';
 
 import {
@@ -76,33 +76,40 @@ class TodaysAcitivitiesObserver implements OneFocusDailyTimeTrackerObserver {
   }
 }
 
-class GetActivities implements ActivityObserver {
+class ActivitiesViewObserver implements ActivityObserver {
 
-  activities: Activity[] = [];   
+  activities: Activity[] = [];
+  activitiesEventEmitter = new EventEmitter();
+  
+  onSignalActivitiesChanged(callback: () => void) {
+    this.activitiesEventEmitter.on('activities-changed', callback);
+  }
 
   update(activities: Activity[]): void {
     this.activities = activities;
+    this.activitiesEventEmitter.emit('activities-changed', this.activities);
   }
 }
 
 export class OneFocusView extends ItemView {
-  private OneFocusSettings: OneFocusSettings;
   private currentActivity?: Activity;
   private currentActivityChangedEmitter = new EventEmitter();
   
   private todaysTimeTrackerViewer: TodaysAcitivitiesObserver = new TodaysAcitivitiesObserver();
-  public getActivities: GetActivities = new GetActivities();
+  public activitiesObserver: ActivitiesViewObserver = new ActivitiesViewObserver();
 
-  constructor(leaf: WorkspaceLeaf, OneFocusSettings: OneFocusSettings, manager: OneFocusActivityManager) {
+  constructor(leaf: WorkspaceLeaf) {
     super(leaf);
-    this.OneFocusSettings = OneFocusSettings;
-    //manager.Subscribe(this.getActivitiesAndReOpen); // Todo This needs to be done different
     
-    this.currentActivity = OneFocusSettings.activities[0] ?? new Activity();
+    this.activitiesObserver.onSignalActivitiesChanged(() => {
+      this.onOpen();
+    });
+
+    this.currentActivity = this.activitiesObserver.activities[0];
   }
 
   public GetActivityObserver(): ActivityObserver {
-    return this.getActivities;
+    return this.activitiesObserver;
   }
 
   public GetTimeTrackerObserver(): OneFocusDailyTimeTrackerObserver {
@@ -133,7 +140,6 @@ export class OneFocusView extends ItemView {
   public RefreshUI () : void {
     this.onOpen();
   }
-
 
   private injectStyles() {
     const style = document.createElement('style');
@@ -215,7 +221,7 @@ export class OneFocusView extends ItemView {
 
     containerEl.createEl('p', { text: 'What are you focusing on?:' });
     // make buttons for each activity in the activitiesObserver, color them in activity color
-    const activities = this.OneFocusSettings.activities;
+    const activities = this.activitiesObserver.activities;
     activities.forEach(activity => {
       const button = containerEl.createEl('button', { text: activity.displayName });
       button.addEventListener('click', () => {
