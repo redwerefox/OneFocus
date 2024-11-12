@@ -1,6 +1,6 @@
-import { App,  PluginSettingTab, Setting } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 import OneFocus from '../main';
-import {Activity} from './Activity';
+import { Activity } from './Activity';
 
 
 export interface OneFocusSettings {
@@ -8,7 +8,7 @@ export interface OneFocusSettings {
 }
 
 export interface ActivityObserver {
-    update(activities: Activity[]) : void;
+    update(activities: Activity[]): void;
 }
 
 export interface ActivitySubject {
@@ -22,8 +22,7 @@ class ActivitySubjectImpl implements ActivitySubject {
 
     subscribe(observer: ActivityObserver): void {
         //add observer if not already added
-        if (!this.observers.includes(observer))
-        {
+        if (!this.observers.includes(observer)) {
             this.observers.push(observer);
         }
     }
@@ -39,11 +38,10 @@ class ActivitySubjectImpl implements ActivitySubject {
 
 export class OneFocusActivityManager {
 
-    settings: OneFocusSettings;
-    activitySubject: ActivitySubject;
+    private settings: OneFocusSettings;
+    private activitySubject: ActivitySubject;
 
     constructor(settings: OneFocusSettings) {
-        //refer this settings to the settings passed in
         this.settings = settings;
         this.activitySubject = new ActivitySubjectImpl();
     }
@@ -61,23 +59,23 @@ export class OneFocusActivityManager {
         this.activitySubject.detach(observer);
     }
 
-    GetSettings(): OneFocusSettings {
+    public GetSettings(): OneFocusSettings {
         return this.settings;
     }
 
-    addActivity(activity: Activity): OneFocusActivityManager { 
+    public addActivity(activity: Activity): OneFocusActivityManager {
         this.settings.activities.push(activity);
         this.activitySubject.notify(this.settings.activities);
         return this;
     }
 
-    removeActivity(activity: Activity): OneFocusActivityManager {
+    public removeActivity(activity: Activity): OneFocusActivityManager {
         this.settings.activities = this.settings.activities.filter((a: Activity) => a.id !== activity.id);
         this.activitySubject.notify(this.settings.activities);
         return this;
     }
 
-    modifyActivity(activity: Activity): OneFocusActivityManager {
+    public modifyActivity(activity: Activity): OneFocusActivityManager {
         this.settings.activities = this.settings.activities.map((a: Activity) => {
             if (a.id === activity.id) {
                 a.displayName = activity.displayName;
@@ -88,8 +86,8 @@ export class OneFocusActivityManager {
         return this;
     }
 
-    getActivities(): Activity[] {
-        return this.settings.activities; 
+    public getActivities(): Activity[] {
+        return this.settings.activities;
     }
 }
 
@@ -99,59 +97,45 @@ export const DEFAULT_ONEFOCUS_SETTINGS: Partial<OneFocusSettings> = {
 
 export class OneFocusSettingsTab extends PluginSettingTab {
     plugin: OneFocus;
-    settings: OneFocusSettings;
     manager: OneFocusActivityManager;
 
     constructor(app: App, plugin: OneFocus, manager: OneFocusActivityManager) {
         super(app, plugin);
         this.plugin = plugin;
         this.manager = manager;
-        this.settings = manager.GetSettings();
-    }
-
-    addActivity(activity: Activity): void {
-        this.manager.addActivity(activity);
-    }
-
-    removeActivity(activity: Activity): void {
-        this.manager.removeActivity(activity);
-    }
-
-    modifyActivity(activity: Activity): void {
-        this.manager.modifyActivity(activity);
     }
 
     display(): void {
-        const {containerEl} = this;
+        const { containerEl } = this;
 
         containerEl.empty();
 
-        containerEl.createEl('h2', {text: 'OneFocus Settings'});
+        containerEl.createEl('h2', { text: 'OneFocus Settings' });
         //create a editable text field and a text to change color
-        
+
         this.plugin.settings.activities.forEach((activity: Activity) => {
-        new Setting(containerEl)
-            .setName('Activity')
-            .setDesc('Modify activities to focus on')
-            .addText(text => text
-                .setValue(activity.displayName)
-                .onChange(value => {
-                    activity.setName(value);
-                    this.plugin.saveData(this.plugin.settings);
-                })).addColorPicker(color => color
-                    .setValue(activity.color)
+            new Setting(containerEl)
+                .setName('Activity')
+                .setDesc('Modify activities to focus on')
+                .addText(text => text
+                    .setValue(activity.displayName)
                     .onChange(value => {
-                        activity.color = value;
-                        this.modifyActivity(activity);
+                        activity.setName(value);
                         this.plugin.saveData(this.plugin.settings);
-                    })).addButton(button => button
-                        .setButtonText('Remove')
-                        .onClick(() => {
-                            this.removeActivity(activity);
-                            this.display();
+                    })).addColorPicker(color => color
+                        .setValue(activity.color)
+                        .onChange(value => {
+                            activity.color = value;
+                            this.modifyActivity(activity);
                             this.plugin.saveData(this.plugin.settings);
-                        }));
-            });
+                        })).addButton(button => button
+                            .setButtonText('Remove')
+                            .onClick(() => {
+                                this.removeActivity(activity);
+                                this.display();
+                                this.plugin.saveData(this.plugin.settings);
+                            }));
+        });
 
         new Setting(containerEl)
             .setName('Add Activity')
@@ -163,5 +147,17 @@ export class OneFocusSettingsTab extends PluginSettingTab {
                     this.display();
                     this.plugin.saveData(this.plugin.settings);
                 }));
+    }
+
+    private addActivity(activity: Activity): void {
+        this.manager.addActivity(activity);
+    }
+
+    private removeActivity(activity: Activity): void {
+        this.manager.removeActivity(activity);
+    }
+
+    private modifyActivity(activity: Activity): void {
+        this.manager.modifyActivity(activity);
     }
 }

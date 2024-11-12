@@ -50,9 +50,6 @@ export default class OneFocus extends Plugin {
 		if (leaf)
 		{
 			workspace.revealLeaf(leaf);
-			this.view = leaf.view as OneFocusView;
-			this.timeTracker.Subscribe(this.view.GetTimeTrackerObserver());
-			this.view.InsertInFrontCallback(() => this.refreshUi());
 		}
 	}
 
@@ -67,10 +64,10 @@ export default class OneFocus extends Plugin {
 	}
 
 
-	refreshUi() {
-		this.statusBarItemEl.setText(this.GetCurrentActivity()?.displayName ?? 'Issue loading activity');
-		this.activateView();
+	OnActivityChange() {
+		this.statusBarItemEl.setText(this.GetCurrentActivity()?.displayName ?? 'Issue loading activity');//this.activateView();
 		this.timeTracker.onCurrentActivityChanged(this.GetCurrentActivity());
+		this.view?.RefreshUI();
 	}
 
 	async onload() {
@@ -83,8 +80,15 @@ export default class OneFocus extends Plugin {
 
 		this.registerView(
 			OneFocusViewType,
-			(leaf) => new OneFocusView(leaf, this.settings, this.manager),
+			(leaf) => this.view = new OneFocusView(leaf, this.settings, this.manager)
 		);
+
+		// get OneFocusView
+		if(this.view) {
+			this.timeTracker.Subscribe(this.view.GetTimeTrackerObserver());
+			this.manager.Subscribe(this.view.GetActivityObserver());
+			this.view.onSignalCurrentActivityChanged(this.OnActivityChange.bind(this));
+		}	
 
 
 		this.addRibbonIcon('calendar-clock', 'OneFocus', () => { this.activateView(); });

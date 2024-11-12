@@ -1,5 +1,6 @@
 
 
+import { EventEmitter } from 'events';
 import { Activity, ActivityTimeView } from './Activity';
 import { OneFocusSettings, ActivityObserver, OneFocusActivityManager } from './OneFocusSettingsTab';
 import { OneFocusDailyTimeTrackerViewer as OneFocusDailyTimeTrackerObserver } from './OneFocusTimeTracker';
@@ -19,7 +20,7 @@ class ActivityPercentage {
   percentage: number;
 }
 
-class TodaysTimeTrackerObserver implements OneFocusDailyTimeTrackerObserver {
+class TodaysAcitivitiesObserver implements OneFocusDailyTimeTrackerObserver {
 
   activityPercentages: ActivityPercentage[] = [];
 
@@ -75,66 +76,37 @@ class TodaysTimeTrackerObserver implements OneFocusDailyTimeTrackerObserver {
   }
 }
 
-class GetActivitiesAndReOpen implements ActivityObserver {
-  refreshFunctions: ((activities: Activity[]) => void)[];
+class GetActivities implements ActivityObserver {
 
-  constructor() {
-    this.refreshFunctions = [];
-  }
-
-  insertInFrontCallback(openFunction: () => void): void {
-    //insert in front of array
-    this.refreshFunctions.unshift(openFunction);
-  }
+  activities: Activity[] = [];   
 
   update(activities: Activity[]): void {
-    this.refreshFunctions.forEach(f => f(activities));
+    this.activities = activities;
   }
 }
 
 export class OneFocusView extends ItemView {
   private OneFocusSettings: OneFocusSettings;
-  private getActivitiesAndReOpen: GetActivitiesAndReOpen;
-  private todaysTimeTrackerViewer: TodaysTimeTrackerObserver = new TodaysTimeTrackerObserver();
-  private tickInterval: NodeJS.Timer | undefined;
-
-  // None or current activity as Optional
   private currentActivity?: Activity;
+  private currentActivityChangedEmitter = new EventEmitter();
+  
+  private todaysTimeTrackerViewer: TodaysAcitivitiesObserver = new TodaysAcitivitiesObserver();
+  public getActivities: GetActivities = new GetActivities();
 
   constructor(leaf: WorkspaceLeaf, OneFocusSettings: OneFocusSettings, manager: OneFocusActivityManager) {
     super(leaf);
     this.OneFocusSettings = OneFocusSettings;
-    this.getActivitiesAndReOpen = new GetActivitiesAndReOpen();
-    this.getActivitiesAndReOpen.insertInFrontCallback(() => this.onOpen());
-    manager.Subscribe(this.getActivitiesAndReOpen); // Todo This needs to be done different
-    this.todaysTimeTrackerViewer = new TodaysTimeTrackerObserver();
+    //manager.Subscribe(this.getActivitiesAndReOpen); // Todo This needs to be done different
     
-
-    //setUp Tick per minute
-    this.tickInterval = setInterval(() => {
-      this.tickPeriodic();
-    }, 1000 * 6);
-
     this.currentActivity = OneFocusSettings.activities[0] ?? new Activity();
-    this.getActivitiesAndReOpen.update(OneFocusSettings.activities);
-  }
-
-
-  // check life performance
-  async tickPeriodic() {
-    this.onOpen();
   }
 
   public GetActivityObserver(): ActivityObserver {
-    return this.getActivitiesAndReOpen;
+    return this.getActivities;
   }
 
   public GetTimeTrackerObserver(): OneFocusDailyTimeTrackerObserver {
     return this.todaysTimeTrackerViewer;
-  }
-
-  public InsertInFrontCallback(openFunction: () => void): void {
-    this.getActivitiesAndReOpen.insertInFrontCallback(openFunction);
   }
 
   public getViewType(): string {
@@ -157,6 +129,11 @@ export class OneFocusView extends ItemView {
   getIcon(): string {
     return 'calendar-clock';
   }
+
+  public RefreshUI () : void {
+    this.onOpen();
+  }
+
 
   private injectStyles() {
     const style = document.createElement('style');
@@ -197,11 +174,16 @@ export class OneFocusView extends ItemView {
   }
 
   async onClose() {
-    const containerEl = this.containerEl.children[1];
-    this.tickInterval?.unref();
-    containerEl.empty();
+
   }
 
+  private emitCurrentActivityChangedSignal() {
+    this.currentActivityChangedEmitter.emit('current-activity-changed', this.currentActivity);
+  }
+
+  onSignalCurrentActivityChanged(callback: (activity: Activity) => void) {
+    this.currentActivityChangedEmitter.on('current-activity-changed', callback);
+  }
 
   async onOpen() {
 
@@ -238,7 +220,7 @@ export class OneFocusView extends ItemView {
       const button = containerEl.createEl('button', { text: activity.displayName });
       button.addEventListener('click', () => {
         this.currentActivity = activity;
-        this.getActivitiesAndReOpen.update(activities);
+        this.emitCurrentActivityChangedSignal();
       })
 
       button.style.width = '99%';           // Make the button take up most of the view width
