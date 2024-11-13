@@ -1,8 +1,10 @@
 
 
 import { EventEmitter } from 'events';
-import { Activity, ActivityTimeView } from './Activity';
+import { Activity } from './Activity';
 import { ActivityObserver } from './OneFocusSettingsTab';
+import { TodaysAcitivitiesObserver } from './TodaysActivitiesObserver';
+import { ActivitiesObserver } from './ActivitiesObserver';
 import { OneFocusDailyTimeTrackerViewer as OneFocusDailyTimeTrackerObserver } from './OneFocusTimeTracker';
 
 import {
@@ -15,97 +17,40 @@ import {
 
 export const OneFocusViewType = 'OneFocus-active-activity';
 
-class ActivityPercentage {
-  activity: Activity;
-  percentage: number;
-}
-
-class TodaysAcitivitiesObserver implements OneFocusDailyTimeTrackerObserver {
-
-  activityPercentages: ActivityPercentage[] = [];
-
-  processActivityTimeView(activityTimeViews: ActivityTimeView[]): void {
-    this.activityPercentages = this.calculateActivityPercentages(activityTimeViews);
-  }
-
-  public GetActivityPercentages(): ActivityPercentage[] {
-    return this.activityPercentages;
-  }
-
-  seconds(startDateTime: Date, endDateTime: Date): number {
-    return (endDateTime.getTime() - startDateTime.getTime()) / 1000;
-  }
-
-  // calculate percentages of time spent on each activity
-  // return an array of ActivityPercentage
-  calculateActivityPercentages(activityTimeViews: ActivityTimeView[]): ActivityPercentage[] {
-    const activityPercentages: ActivityPercentage[] = [];
-    const activityTimeMap = new Map<string, number>();
-
-    activityTimeViews.forEach((activityTimeView) => {
-      const activityName = activityTimeView.activityName;
-
-      const thisStartDate = activityTimeView.startTime;
-      const nextStartDate = activityTimeView.endTime ?? new Date();
-
-      const duration = this.seconds(thisStartDate, nextStartDate);
-      if (activityTimeMap.has(activityName)) {
-        activityTimeMap.set(activityName, activityTimeMap.get(activityName) ?? 0 + duration);
-      } else {
-        activityTimeMap.set(activityName, duration);
-      }
-
-    });
-
-    //sum all durations and make percentages
-    const totalDuration = Array.from(activityTimeMap.values()).reduce((a, b) => a + b, 0);
-    Array.from(activityTimeMap.keys()).forEach((key) => {
-      const value = activityTimeMap.get(key) ?? 0;
-      activityTimeMap.set(key, value / totalDuration * 100);
-    });
-
-    activityTimeMap.forEach((value, key) => {
-      const activityPercentage = new ActivityPercentage();
-      activityPercentage.activity = new Activity();
-      activityPercentage.activity.displayName = key;
-      activityPercentage.percentage = value;
-      activityPercentages.push(activityPercentage);
-    });
-
-    return activityPercentages;
-  }
-}
-
-class ActivitiesViewObserver implements ActivityObserver {
-
-  activities: Activity[] = [];
-  activitiesEventEmitter = new EventEmitter();
-  
-  onSignalActivitiesChanged(callback: () => void) {
-    this.activitiesEventEmitter.on('activities-changed', callback);
-  }
-
-  update(activities: Activity[]): void {
-    this.activities = activities;
-    this.activitiesEventEmitter.emit('activities-changed', this.activities);
-  }
-}
-
 export class OneFocusView extends ItemView {
-  private currentActivity?: Activity;
+  private currentActivity: Activity;
+  
   private currentActivityChangedEmitter = new EventEmitter();
   
-  private todaysTimeTrackerViewer: TodaysAcitivitiesObserver = new TodaysAcitivitiesObserver();
-  public activitiesObserver: ActivitiesViewObserver = new ActivitiesViewObserver();
+  private todaysTimeTrackerViewer: TodaysAcitivitiesObserver;
+  public activitiesObserver: ActivitiesObserver;
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, acitivityObserver: ActivitiesObserver, timeTrackerObserver: TodaysAcitivitiesObserver,
+     currentActivityChangedCallback: (activity: Activity) => void) {
     super(leaf);
+
+    this.activitiesObserver = acitivityObserver;
+    this.todaysTimeTrackerViewer = timeTrackerObserver;
+
+
+    // TODO: Split view rendering between percentage graph and activity buttons
+
+    this.activitiesObserver.activitiesEventEmitter.on('activities-changed', () => {
+      this.onOpen();
+    });
     
-    this.activitiesObserver.onSignalActivitiesChanged(() => {
+    this.activitiesObserver.activitiesEventEmitter.once('activities-changed', () => {
+      this.currentActivity = this.activitiesObserver.GetActivities()[0] ?? new Activity();
+      this.emitCurrentActivityChangedSignal();
+      currentActivityChangedCallback(this.currentActivity);
+    });
+
+    this.todaysTimeTrackerViewer.onActivityPercentagesReady( () => {
       this.onOpen();
     });
 
-    this.currentActivity = this.activitiesObserver.activities[0];
+    this.currentActivityChangedEmitter.on('current-activity-changed', currentActivityChangedCallback);
+
   }
 
   public GetActivityObserver(): ActivityObserver {
@@ -129,7 +74,7 @@ export class OneFocusView extends ItemView {
     return this.currentActivity?.displayName ?? 'No Activities loaded';
   }
 
-  public getCurrentActivity(): Activity | undefined {
+  public getCurrentActivity(): Activity {
     return this.currentActivity;
   }
 
@@ -187,10 +132,6 @@ export class OneFocusView extends ItemView {
     this.currentActivityChangedEmitter.emit('current-activity-changed', this.currentActivity);
   }
 
-  onSignalCurrentActivityChanged(callback: (activity: Activity) => void) {
-    this.currentActivityChangedEmitter.on('current-activity-changed', callback);
-  }
-
   async onOpen() {
 
     this.injectStyles();
@@ -221,12 +162,13 @@ export class OneFocusView extends ItemView {
 
     containerEl.createEl('p', { text: 'What are you focusing on?:' });
     // make buttons for each activity in the activitiesObserver, color them in activity color
-    const activities = this.activitiesObserver.activities;
+    const activities = this.activitiesObserver.GetActivities();
     activities.forEach(activity => {
       const button = containerEl.createEl('button', { text: activity.displayName });
       button.addEventListener('click', () => {
         this.currentActivity = activity;
         this.emitCurrentActivityChangedSignal();
+        this.onOpen();
       })
 
       button.style.width = '99%';           // Make the button take up most of the view width
@@ -260,7 +202,7 @@ export class OneFocusView extends ItemView {
       // Create segment
       const segment = progressBarContainer.createDiv({ cls: 'progress-segment' });
       segment.style.width = `${percentage}%`;
-      segment.style.backgroundColor = activity.color ?? '#cccccc';
+      segment.style.backgroundColor = activity.color;
       segment.setAttr('title', `${activity.displayName}: ${percentage.toFixed(1)}%`);
     });
 

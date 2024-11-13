@@ -73,7 +73,7 @@ export class Activity {
 }
 
 export class ActivityTimeView {
-    activityName: string;
+    activityId: string;
     startTime: Date;
     endTime: Date | undefined;
 
@@ -85,7 +85,7 @@ export class ActivityTimeView {
         const time = new Date(parts[0]);
         const activityView = new ActivityTimeView();
         
-        activityView.activityName = (parts[1]);
+        activityView.activityId = (parts[1]);
         activityView.startTime = time;
 
         if (textNextLine) {
@@ -120,7 +120,7 @@ export class ActivityEvent {
 
     //end Time? really nessesary
     public makeMarkdownText = (): string => { 
-        return `${this.startTimeFormatted()} - ${this.activity.displayName}\n`;
+        return `${this.startTimeFormatted()} - ${this.activity.id}\n`;
     }
 
 }

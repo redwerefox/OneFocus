@@ -1,7 +1,9 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { Notice, Plugin, WorkspaceLeaf } from 'obsidian';
 import { OneFocusSettingsTab, DEFAULT_ONEFOCUS_SETTINGS, OneFocusSettings, OneFocusActivityManager } from 'src/OneFocusSettingsTab';
 import { OneFocusView, OneFocusViewType } from 'src/OneFocusView';
 import { OneFocusDailyTimeTracker } from 'src/OneFocusTimeTracker';
+import { TodaysAcitivitiesObserver } from 'src/TodaysActivitiesObserver';
+import { ActivitiesObserver } from 'src/ActivitiesObserver';
 import { Activity } from 'src/Activity';
 // Remember to rename these classes and interfaces! TODO
 
@@ -26,6 +28,10 @@ export default class OneFocus extends Plugin {
 	settings: OneFocusSettings;
 	manager: OneFocusActivityManager;
 	timeTracker: OneFocusDailyTimeTracker;
+
+	activityObserver: ActivitiesObserver;
+	timeTrackerObserver: TodaysAcitivitiesObserver;
+
 	view : OneFocusView | undefined;
 	statusBarItemEl: HTMLElement;
 
@@ -50,29 +56,13 @@ export default class OneFocus extends Plugin {
 		if (leaf)
 		{
 			workspace.revealLeaf(leaf);
-			const view = leaf.view as OneFocusView;
-			this.timeTracker.Subscribe(view.GetTimeTrackerObserver());
-			this.manager.Subscribe(view.GetActivityObserver());
-			view.onSignalCurrentActivityChanged(this.OnActivityChange.bind(this));
-			view.RefreshUI();
-			this.view = view;
 		}
 	}
 
-	private GetCurrentActivity(): Activity | undefined {
-		const existing = this.app.workspace.getLeavesOfType(OneFocusViewType);
-		if (existing.length) {
-			const view = existing[0].view as OneFocusView;
-			return view.getCurrentActivity();
-		}
-		else
-			return undefined;
-	}
 
-
-	OnActivityChange() {
-		this.statusBarItemEl.setText(this.GetCurrentActivity()?.displayName ?? 'Issue loading activity');//this.activateView();
-		this.timeTracker.onCurrentActivityChanged(this.GetCurrentActivity());
+	OnActivityChange(activity : Activity) {
+		this.statusBarItemEl.setText(activity.displayName);
+		this.timeTracker.CurrentActivityChanged(activity);
 		this.view?.RefreshUI();
 	}
 
@@ -82,15 +72,17 @@ export default class OneFocus extends Plugin {
 		this.manager = new OneFocusActivityManager(this.settings);
 		this.timeTracker = new OneFocusDailyTimeTracker(this.app);
 
-		// make event on activity change to update the current activity in Time tracker
+		this.activityObserver = new ActivitiesObserver();
+		this.timeTrackerObserver = new TodaysAcitivitiesObserver(this.manager);
 
-
+		this.timeTracker.Subscribe(this.timeTrackerObserver);
+		this.manager.Subscribe(this.activityObserver);
+		
 		this.registerView(
 			OneFocusViewType,
-			(leaf) => new OneFocusView(leaf)
+			(leaf) => new OneFocusView(leaf, this.activityObserver, this.timeTrackerObserver, this.OnActivityChange.bind(this))
 		);
-
-
+		
 		this.addRibbonIcon('calendar-clock', 'OneFocus', () => { this.activateView(); });
 
 		this.addCommand({
@@ -112,6 +104,7 @@ export default class OneFocus extends Plugin {
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 		
+		this.activityObserver.update(this.settings.activities);
 	}
 
 
@@ -121,6 +114,7 @@ export default class OneFocus extends Plugin {
 		const leaves = this.app.workspace.getLeavesOfType(OneFocusViewType);
 		for (const leaf of leaves) {
 			leaf.detach();
+			new Notice('OneFocus view removed');
 		}
 		this.manager.ClearActivities();
 	}

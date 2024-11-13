@@ -18,10 +18,8 @@ export class OneFocusDailyTimeTracker {
         this.app = app;
     }
 
-    public onCurrentActivityChanged(newActivity: Activity | undefined) : void  {
-        if (newActivity !== undefined) {
-            this.handleNewActivityEvent(newActivity);
-        }
+    public CurrentActivityChanged(newActivity: Activity) : void  {
+        this.handleNewActivityEvent(newActivity);
     }
 
     private handleNewActivityEvent(activity: Activity): void {

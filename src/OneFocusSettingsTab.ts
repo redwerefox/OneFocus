@@ -63,6 +63,16 @@ export class OneFocusActivityManager {
         return this.settings;
     }
 
+    public GetActivityNameById(id: string): string {
+        const activity = this.settings.activities.find((a: Activity) => a.id === id);
+        return activity?.displayName ?? 'Unknown';
+    }
+
+    public GetColorFromActivityId(id: string): string {
+        const activity = this.settings.activities.find((a: Activity) => a.id === id);
+        return activity?.color ?? 'grey';
+    }
+
     public addActivity(activity: Activity): OneFocusActivityManager {
         this.settings.activities.push(activity);
         this.activitySubject.notify(this.settings.activities);
@@ -113,14 +123,15 @@ export class OneFocusSettingsTab extends PluginSettingTab {
         containerEl.createEl('h2', { text: 'OneFocus Settings' });
         //create a editable text field and a text to change color
 
-        this.plugin.settings.activities.forEach((activity: Activity) => {
+        this.manager.getActivities().forEach((activity: Activity) => {
             new Setting(containerEl)
                 .setName('Activity')
                 .setDesc('Modify activities to focus on')
                 .addText(text => text
                     .setValue(activity.displayName)
                     .onChange(value => {
-                        activity.setName(value);
+                        activity.displayName = value;
+                        this.modifyActivity(activity);
                         this.plugin.saveData(this.plugin.settings);
                     })).addColorPicker(color => color
                         .setValue(activity.color)
